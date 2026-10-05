@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>hermes-agent — Operator &amp; Architecture Guide</title>
+<style>
+  @page { size: A4; margin: 17mm 15mm 16mm 15mm; }
+
+  :root {
+    --ink:      #16191d;
+    --ink-soft: #4a5159;
+    --rule:     #d8dce1;
+    --accent:   #1f4e79;
+    --accent-2: #0f6b52;
+    --warn:     #8a4b0f;
+    --bg-soft:  #f5f6f8;
+    --code-bg:  #f2f4f6;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { font-size: 10.2pt; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.52;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, h4 { line-height: 1.22; margin: 0; font-weight: 600; }
+
+  h1 { font-size: 25pt; letter-spacing: -0.4px; }
+  h2 {
+    font-size: 15pt; color: var(--accent); margin: 22pt 0 8pt;
+    padding-bottom: 4pt; border-bottom: 1.5px solid var(--accent);
+    break-after: avoid;
+  }
+  h3 { font-size: 11.6pt; margin: 14pt 0 5pt; break-after: avoid; }
+  h4 { font-size: 10.2pt; margin: 11pt 0 3pt; color: var(--ink-soft);
+       text-transform: uppercase; letter-spacing: 0.6px; font-size: 8.6pt;
+       break-after: avoid; }
+
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 17pt; }
+  li { margin-bottom: 3pt; }
+  li > ul { margin-top: 3pt; }
+
+  code {
+    font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+    font-size: 0.875em;
+    background: var(--code-bg);
+    padding: 1px 3.5px;
+    border-radius: 2.5px;
+  }
+
+  pre {
+    font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+    font-size: 8.3pt;
+    line-height: 1.45;
+    background: var(--code-bg);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 8pt 10pt;
+    margin: 0 0 9pt;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre .c { color: #5d6670; }   /* comment */
+  pre .k { color: var(--accent); font-weight: 600; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 0 0 10pt;
+    font-size: 9.1pt; break-inside: avoid;
+  }
+  th, td { text-align: left; padding: 4.5pt 7pt; border-bottom: 1px solid var(--rule);
+           vertical-align: top; }
+  th { background: var(--bg-soft); font-weight: 600; font-size: 8.5pt;
+       text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-soft); }
+  td code { font-size: 0.85em; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .lede { font-size: 11.4pt; color: var(--ink-soft); margin: 7pt 0 0; line-height: 1.5; }
+
+  .cover {
+    border-bottom: 2.5px solid var(--accent);
+    padding-bottom: 13pt; margin-bottom: 4pt;
+  }
+  .cover .meta {
+    margin-top: 11pt; font-size: 8.8pt; color: var(--ink-soft);
+    display: flex; gap: 20pt; flex-wrap: wrap;
+  }
+  .cover .meta b { color: var(--ink); font-weight: 600; }
+
+  .callout {
+    background: var(--bg-soft); border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent-2);
+    padding: 7pt 10pt; margin: 0 0 10pt; border-radius: 3px;
+    break-inside: avoid; font-size: 9.4pt;
+  }
+  .callout.warn { border-left-color: var(--warn); background: #fdf7f0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .tag {
+    display: block; font-size: 8pt; font-weight: 700; letter-spacing: 0.7px;
+    text-transform: uppercase; color: var(--accent-2); margin-bottom: 2.5pt;
+  }
+  .callout.warn .tag { color: var(--warn); }
+
+  .fig { margin: 2pt 0 11pt; break-inside: avoid; text-align: center; }
+  .fig svg { max-width: 100%; height: auto; }
+  .fig figcaption {
+    font-size: 8.4pt; color: var(--ink-soft); margin-top: 4pt; text-align: left;
+  }
+
+  .page-break { break-before: page; }
+  .avoid-break { break-inside: avoid; }
+
+  .two-col { display: flex; gap: 14pt; }
+  .two-col > * { flex: 1; min-width: 0; }
+
+  .kv { font-size: 9.2pt; }
+  .kv dt { font-weight: 600; margin-top: 5pt; }
+  .kv dd { margin: 0 0 0 0; color: var(--ink-soft); }
+
+  .footer-note {
+    margin-top: 18pt; padding-top: 7pt; border-top: 1px solid var(--rule);
+    font-size: 8.4pt; color: var(--ink-soft);
+  }
+  .tick { color: var(--accent-2); font-weight: 700; }
+  .cross { color: var(--warn); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <h1>hermes-agent</h1>
+  <p class="lede">A fully local agentic workflow system built on a Nous Research Hermes
+  model served by Ollama. No cloud APIs, no telemetry, no network after the initial
+  model pull.</p>
+  <div class="meta">
+    <span><b>Version</b> 0.1.0</span>
+    <span><b>Runtime</b> Python 3.11+ · Ollama</span>
+    <span><b>Default model</b> hermes3:8b</span>
+    <span><b>Tests</b> 271 passing</span>
+  </div>
+</header>
+
+<h2>1. What this is</h2>
+
+<p>An agent loop, a tool system, and a workflow engine that run entirely on one
+machine. The agent loop is written by hand — no LangChain, no LlamaIndex — so every
+decision (when to stop, what gets sent, how a failure is reported back to the model)
+is readable in a single file.</p>
+
+<p>The design assumption that shapes everything: <strong>an 8B model running locally is
+capable but unreliable in specific, predictable ways.</strong> Most of the engineering
+here is absorbing those failure modes rather than pretending they do not happen.
+Section&nbsp;6 is the honest account of that.</p>
+
+<h2>2. Getting it running</h2>
+
+<h4>Step 1 — Install Ollama and start the daemon</h4>
+<pre><code><span class="c"># https://ollama.com/download  — or on Windows:</span>
+winget install Ollama.Ollama
+
+ollama serve        <span class="c"># leave running in its own terminal</span></code></pre>
+
+<h4>Step 2 — Pull the models</h4>
+<pre><code>ollama pull hermes3:8b          <span class="c"># the agent (~4.7 GB at Q4_K_M)</span>
+ollama pull nomic-embed-text    <span class="c"># only for long-term memory (~274 MB)</span></code></pre>
+
+<h4>Step 3 — Install the package</h4>
+<pre><code>python -m pip install -e ".[dev]"     <span class="c"># add ,server for the HTTP API</span>
+cp .env.example .env                  <span class="c"># optional</span></code></pre>
+
+<h4>Step 4 — Verify the whole chain before trusting it</h4>
+<pre><code>hermes doctor</code></pre>
+
+<p><code>doctor</code> checks that Ollama is reachable, that <em>both</em> model tags are
+actually pulled, and prints the resolved workspace, the tool list, and whether
+destructive tools are enabled. It exits non-zero on any problem. Run it first whenever
+something behaves oddly — it distinguishes "daemon down" from "model not pulled",
+which are the two failures that otherwise look identical.</p>
+
+<div class="callout">
+  <span class="tag">Expected output when Ollama is not running</span>
+  <p><code>ollama &nbsp;unreachable - Cannot reach Ollama at http://localhost:11434.
+  Start it with `ollama serve` (or check HERMES_HOST).</code></p>
+</div>
+
+<h3>Everyday commands</h3>
+
+<table>
+  <thead><tr><th style="width:38%">Command</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>hermes doctor</code></td><td>Pre-flight: daemon, models, workspace, tools</td></tr>
+    <tr><td><code>hermes chat</code></td><td>Interactive REPL with tools and token streaming</td></tr>
+    <tr><td><code>hermes chat "question"</code></td><td>One-shot: send a message and exit</td></tr>
+    <tr><td><code>hermes run &lt;workflow&gt;</code></td><td>Execute a declarative multi-step workflow</td></tr>
+    <tr><td><code>hermes tools list --schemas</code></td><td>Registered tools and their generated JSON schemas</td></tr>
+    <tr><td><code>hermes workflows list</code> / <code>show &lt;n&gt;</code></td><td>Available workflows; step graph and branch conditions</td></tr>
+    <tr><td><code>hermes trace</code></td><td>List recent runs</td></tr>
+    <tr><td><code>hermes trace &lt;run_id&gt;</code></td><td>Replay one run step by step</td></tr>
+    <tr><td><code>hermes memory index &lt;path&gt;</code></td><td>Embed workspace docs into long-term memory</td></tr>
+    <tr><td><code>hermes memory search &lt;query&gt;</code></td><td>Query long-term memory</td></tr>
+  </tbody>
+</table>
+
+<h4>Useful flags</h4>
+<pre><code>hermes chat --show-trace "..."           <span class="c"># print every tool call as it happens</span>
+hermes chat --tools calculator,read_file <span class="c"># restrict the tool set</span>
+hermes chat -m hermes3:70b --num-ctx 16384
+hermes chat --temperature 0.0 --no-stream
+hermes run doc_research -i folder=docs --allow-destructive</code></pre>
+
+<div class="callout warn">
+  <span class="tag">--allow-destructive</span>
+  <p><code>write_file</code> and <code>run_python</code> refuse to run without it. A
+  workflow that declares <code>allow_destructive: true</code> is rejected
+  <em>before any model call is made</em>, so you get a config error rather than a
+  half-finished run.</p>
+</div>
+
+<h3>Configuration</h3>
+<p>Precedence, highest first: <strong>CLI flags → <code>HERMES_*</code> env vars →
+<code>.env</code> → <code>config.yaml</code> → defaults.</strong> Nested keys use a
+double underscore; a few flat aliases exist for convenience.</p>
+<pre><code>HERMES_MODEL=hermes3:70b              <span class="c"># alias for ollama.model</span>
+HERMES_OLLAMA__NUM_CTX=16384
+HERMES_AGENT__MAX_ITERATIONS=15
+HERMES_SAFETY__ALLOW_DESTRUCTIVE=true</code></pre>
+<p>Changing model is configuration only — no code changes, and larger Hermes variants
+work unmodified.</p>
+
+<div class="page-break"></div>
+
+<h2>3. What it can do</h2>
+
+<h3>The six built-in tools</h3>
+<table>
+  <thead><tr><th style="width:22%">Tool</th><th style="width:14%">Flags</th><th>Behaviour</th></tr></thead>
+  <tbody>
+    <tr><td><code>read_file</code></td><td></td><td>Read a UTF-8 file; sandboxed, byte-capped, truncation is labelled</td></tr>
+    <tr><td><code>write_file</code></td><td><span class="cross">destructive</span>, serial</td><td>Write/append; creates parent directories; sandboxed</td></tr>
+    <tr><td><code>list_dir</code></td><td></td><td>List files, optionally recursive, entry-capped</td></tr>
+    <tr><td><code>run_python</code></td><td><span class="cross">destructive</span>, serial</td><td>Subprocess, workspace cwd, no network, wall-clock timeout</td></tr>
+    <tr><td><code>calculator</code></td><td></td><td>Exact arithmetic via a whitelisted AST walker — never <code>eval</code></td></tr>
+    <tr><td><code>web_search</code></td><td>stub</td><td>Interface only; pluggable backend, unset so the system stays offline</td></tr>
+  </tbody>
+</table>
+
+<h3>Capabilities</h3>
+<dl class="kv">
+  <dt>Tool-using chat</dt>
+  <dd>ReAct loop with streaming, per-turn concurrent tool execution, and hard guards
+  on iterations, calls per turn, and repeated calls.</dd>
+
+  <dt>Declarative workflows</dt>
+  <dd>Multi-step YAML pipelines. Each step is one agent call with its own system
+  prompt, tool subset, iteration budget and output schema. Supports sequential flow,
+  conditional branching on structured output, and bounded loops.</dd>
+
+  <dt>Structured output</dt>
+  <dd>Ollama's <code>format</code> parameter constrains generation to a JSON schema;
+  the result is validated and repaired once with the exact validation error fed back.</dd>
+
+  <dt>Short-term memory</dt>
+  <dd>Rolling context window that summarizes evicted turns before they fall off the
+  end, so a long run does not silently lose its task.</dd>
+
+  <dt>Long-term memory (optional)</dt>
+  <dd>SQLite + <code>nomic-embed-text</code> embeddings, behind a flag. Retrieved
+  chunks are injected as system context labelled untrusted.</dd>
+
+  <dt>Observability</dt>
+  <dd>One JSONL file per run, one record per step: model calls with token counts and
+  latency, tool calls with arguments and results, fallback parses, loop detections,
+  context trims, workflow transitions.</dd>
+
+  <dt>HTTP API (optional)</dt>
+  <dd>FastAPI with SSE streaming: <code>/health</code>, <code>/tools</code>,
+  <code>/workflows</code>, <code>/chat</code>, <code>/chat/stream</code>,
+  <code>/workflows/{name}/run</code>, <code>/runs/{id}</code>.</dd>
+</dl>
+
+<h3>The two bundled workflows</h3>
+
+<h4>doc_research — read a folder, write a report</h4>
+<pre><code>hermes run doc_research -i folder=docs -i report_path=summary.md --allow-destructive</code></pre>
+<p>Five steps: inventory → read and note → synthesise → write report, with an early-exit
+branch when the folder holds no readable documents. Demonstrates conditional branching,
+a required output schema, and an optional schema that degrades to prose rather than
+failing the run.</p>
+
+<h4>code_fix_loop — plan, write, test, fix</h4>
+<pre><code>hermes run code_fix_loop \
+  -i task="parse 'HH:MM:SS' into seconds, raising ValueError on bad input" \
+  --allow-destructive</code></pre>
+<p>Six steps with a bounded repair loop: the <code>run_tests</code> step branches back
+to <code>fix</code> until the tests pass or <code>state.visits.run_tests</code> exceeds
+<code>inputs.max_fixes</code>. Critically, it gates on <em>actual test output</em>, not
+on the model's opinion of its own work.</p>
+
+<h3>Observability in practice</h3>
+<pre><code><span class="c"># Slowest tool calls across every run</span>
+cat runs/*.jsonl | jq -r 'select(.kind=="tool_call") | [.latency_ms, .name] | @tsv' | sort -rn | head
+
+<span class="c"># How often did the fallback parser have to rescue a tool call?</span>
+cat runs/*.jsonl | jq -r 'select(.kind=="parse_fallback") | .meta.recovered[]' | sort | uniq -c</code></pre>
+<p>That second number is the single most useful signal for judging whether a given
+model and quantization are reliable enough for your workload.</p>
+
+<div class="page-break"></div>
+
+<h2>4. Architecture</h2>
+
+<p>Seven layers, each depending only on those below it. The arrows are imports, not
+network calls — everything runs in one process against a local HTTP daemon.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 660 400" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#4a5159"/>
+    </marker>
+  </defs>
+
+  <!-- Interfaces -->
+  <rect x="20" y="12" width="620" height="46" rx="4" fill="#eef3f8" stroke="#1f4e79" stroke-width="1.2"/>
+  <text x="30" y="29" font-size="9" font-weight="700" fill="#1f4e79">INTERFACES</text>
+  <rect x="150" y="20" width="140" height="30" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="220" y="39" font-size="10" text-anchor="middle" fill="#16191d">cli.py (typer)</text>
+  <rect x="310" y="20" width="150" height="30" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="385" y="39" font-size="10" text-anchor="middle" fill="#16191d">server.py (FastAPI+SSE)</text>
+  <rect x="480" y="20" width="145" height="30" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="552" y="39" font-size="10" text-anchor="middle" fill="#16191d">runtime.py (wiring)</text>
+
+  <line x1="330" y1="58" x2="330" y2="76" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- Workflows -->
+  <rect x="20" y="78" width="620" height="54" rx="4" fill="#eef3f8" stroke="#1f4e79" stroke-width="1.2"/>
+  <text x="30" y="95" font-size="9" font-weight="700" fill="#1f4e79">WORKFLOWS</text>
+  <rect x="150" y="90" width="108" height="32" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="204" y="104" font-size="9.5" text-anchor="middle">engine.py</text>
+  <text x="204" y="115" font-size="7.5" text-anchor="middle" fill="#4a5159">step runner</text>
+  <rect x="266" y="90" width="108" height="32" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="320" y="104" font-size="9.5" text-anchor="middle">schema.py</text>
+  <text x="320" y="115" font-size="7.5" text-anchor="middle" fill="#4a5159">spec + graph check</text>
+  <rect x="382" y="90" width="112" height="32" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="438" y="104" font-size="9.5" text-anchor="middle">expressions.py</text>
+  <text x="438" y="115" font-size="7.5" text-anchor="middle" fill="#4a5159">templates + conditions</text>
+  <rect x="502" y="90" width="123" height="32" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="563" y="104" font-size="9.5" text-anchor="middle">jsonschema_mini</text>
+  <text x="563" y="115" font-size="7.5" text-anchor="middle" fill="#4a5159">output validation</text>
+
+  <line x1="330" y1="132" x2="330" y2="150" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- Agent -->
+  <rect x="20" y="152" width="620" height="50" rx="4" fill="#e6f0ec" stroke="#0f6b52" stroke-width="1.6"/>
+  <text x="30" y="169" font-size="9" font-weight="700" fill="#0f6b52">AGENT</text>
+  <rect x="150" y="161" width="200" height="32" rx="3" fill="#fff" stroke="#7bb3a0"/>
+  <text x="250" y="175" font-size="9.5" text-anchor="middle" font-weight="600">agent/loop.py</text>
+  <text x="250" y="186" font-size="7.5" text-anchor="middle" fill="#4a5159">ReAct loop · guards · tracing</text>
+  <rect x="362" y="161" width="140" height="32" rx="3" fill="#fff" stroke="#7bb3a0"/>
+  <text x="432" y="175" font-size="9.5" text-anchor="middle">agent/prompts.py</text>
+  <text x="432" y="186" font-size="7.5" text-anchor="middle" fill="#4a5159">system prompts</text>
+
+  <line x1="200" y1="202" x2="200" y2="220" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar)"/>
+  <line x1="460" y1="202" x2="460" y2="220" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- Tools + Memory -->
+  <rect x="20" y="222" width="300" height="76" rx="4" fill="#eef3f8" stroke="#1f4e79" stroke-width="1.2"/>
+  <text x="30" y="239" font-size="9" font-weight="700" fill="#1f4e79">TOOLS</text>
+  <rect x="32" y="244" width="134" height="22" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="99" y="259" font-size="8.8" text-anchor="middle">registry.py (@tool)</text>
+  <rect x="174" y="244" width="134" height="22" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="241" y="259" font-size="8.8" text-anchor="middle">sandbox.py</text>
+  <rect x="32" y="270" width="134" height="22" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="99" y="285" font-size="8.8" text-anchor="middle">builtins.py</text>
+  <rect x="174" y="270" width="134" height="22" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="241" y="285" font-size="8.8" text-anchor="middle">_pyrunner.py</text>
+
+  <rect x="340" y="222" width="300" height="76" rx="4" fill="#eef3f8" stroke="#1f4e79" stroke-width="1.2"/>
+  <text x="350" y="239" font-size="9" font-weight="700" fill="#1f4e79">MEMORY</text>
+  <rect x="352" y="244" width="134" height="22" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="419" y="259" font-size="8.8" text-anchor="middle">short_term.py</text>
+  <rect x="494" y="244" width="134" height="22" rx="3" fill="#fff" stroke="#9fb6cc"/>
+  <text x="561" y="259" font-size="8.8" text-anchor="middle">vector.py (opt.)</text>
+  <rect x="352" y="270" width="276" height="22" rx="3" fill="#f7f8fa" stroke="#c3ccd6"/>
+  <text x="490" y="285" font-size="8.2" text-anchor="middle" fill="#4a5159">rolling window + summarization · SQLite cosine</text>
+
+  <line x1="330" y1="298" x2="330" y2="316" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- LLM -->
+  <rect x="20" y="318" width="620" height="50" rx="4" fill="#e6f0ec" stroke="#0f6b52" stroke-width="1.6"/>
+  <text x="30" y="335" font-size="9" font-weight="700" fill="#0f6b52">LLM</text>
+  <rect x="150" y="327" width="200" height="32" rx="3" fill="#fff" stroke="#7bb3a0"/>
+  <text x="250" y="341" font-size="9.5" text-anchor="middle" font-weight="600">llm/client.py</text>
+  <text x="250" y="352" font-size="7.5" text-anchor="middle" fill="#4a5159">httpx · retries · error classes</text>
+  <rect x="362" y="327" width="200" height="32" rx="3" fill="#fff" stroke="#7bb3a0"/>
+  <text x="462" y="341" font-size="9.5" text-anchor="middle" font-weight="600">llm/parsing.py</text>
+  <text x="462" y="352" font-size="7.5" text-anchor="middle" fill="#4a5159">tag fallback · JSON repair</text>
+
+  <line x1="330" y1="368" x2="330" y2="382" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar)"/>
+  <text x="330" y="395" font-size="9" text-anchor="middle" fill="#4a5159" font-style="italic">Ollama HTTP API — localhost:11434</text>
+</svg>
+<figcaption><strong>Figure 1.</strong> Layer map. <code>config.py</code>,
+<code>errors.py</code> and <code>trace.py</code> are cross-cutting and used by every
+layer.</figcaption>
+</figure>
+
+<h3>The agent loop</h3>
+
+<figure class="fig">
+<svg viewBox="0 0 660 232" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#4a5159"/>
+    </marker>
+  </defs>
+
+  <rect x="14" y="60" width="86" height="34" rx="4" fill="#fff" stroke="#9fb6cc"/>
+  <text x="57" y="81" font-size="9.5" text-anchor="middle">messages</text>
+  <line x1="100" y1="77" x2="126" y2="77" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar2)"/>
+
+  <rect x="130" y="52" width="104" height="50" rx="4" fill="#e6f0ec" stroke="#0f6b52" stroke-width="1.4"/>
+  <text x="182" y="72" font-size="9.5" text-anchor="middle" font-weight="600">trim if needed</text>
+  <text x="182" y="86" font-size="9.5" text-anchor="middle" font-weight="600">→ model call</text>
+  <line x1="234" y1="77" x2="262" y2="77" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar2)"/>
+
+  <polygon points="330,46 400,77 330,108 260,77" fill="#fff" stroke="#1f4e79" stroke-width="1.3"/>
+  <text x="330" y="74" font-size="8.6" text-anchor="middle">native or</text>
+  <text x="330" y="85" font-size="8.6" text-anchor="middle">parsed calls?</text>
+
+  <!-- yes path -->
+  <line x1="330" y1="108" x2="330" y2="134" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar2)"/>
+  <text x="338" y="124" font-size="8.4" fill="#0f6b52" font-weight="600">yes</text>
+  <rect x="222" y="136" width="216" height="38" rx="4" fill="#fff" stroke="#9fb6cc"/>
+  <text x="330" y="151" font-size="9" text-anchor="middle">execute: parallel-safe concurrently,</text>
+  <text x="330" y="164" font-size="9" text-anchor="middle">writers serially afterwards</text>
+
+  <!-- loop back -->
+  <line x1="222" y1="155" x2="182" y2="155" stroke="#4a5159" stroke-width="1.2"/>
+  <line x1="182" y1="155" x2="182" y2="104" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar2)"/>
+  <text x="174" y="149" font-size="8.4" fill="#4a5159" text-anchor="end">append results, loop</text>
+
+  <!-- no path -->
+  <line x1="400" y1="77" x2="436" y2="77" stroke="#4a5159" stroke-width="1.2" marker-end="url(#ar2)"/>
+  <text x="404" y="69" font-size="8.4" fill="#1f4e79" font-weight="600">no</text>
+  <rect x="440" y="58" width="104" height="38" rx="4" fill="#e6f0ec" stroke="#0f6b52" stroke-width="1.4"/>
+  <text x="492" y="82" font-size="9.5" text-anchor="middle" font-weight="600">final answer</text>
+
+  <!-- guards -->
+  <rect x="440" y="136" width="206" height="80" rx="4" fill="#fdf7f0" stroke="#8a4b0f" stroke-width="1.2"/>
+  <text x="450" y="152" font-size="8.4" font-weight="700" fill="#8a4b0f">GUARDS — any trip forces an answer</text>
+  <text x="450" y="167" font-size="8.4" fill="#16191d">· max_iterations (10)</text>
+  <text x="450" y="179" font-size="8.4" fill="#16191d">· max tool calls per turn (5)</text>
+  <text x="450" y="191" font-size="8.4" fill="#16191d">· same (tool, args) ×3 → loop detected</text>
+  <text x="450" y="203" font-size="8.4" fill="#16191d">· context &gt; 75% of num_ctx → trim</text>
+  <line x1="492" y1="136" x2="492" y2="98" stroke="#8a4b0f" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar2)"/>
+
+  <rect x="14" y="186" width="400" height="34" rx="4" fill="#f5f6f8" stroke="#c3ccd6"/>
+  <text x="24" y="199" font-size="8.3" fill="#4a5159">Every step emits a JSONL trace record: thought, call, args,</text>
+  <text x="24" y="211" font-size="8.3" fill="#4a5159">result, latency, token counts.</text>
+</svg>
+<figcaption><strong>Figure 2.</strong> One iteration. When a guard trips, the loop makes
+one final call with <em>tools withheld</em> so the model cannot ask for more; if even
+that yields nothing usable, a degraded answer returns the last successful tool result
+with an honest explanation. The loop never returns an empty string.</figcaption>
+</figure>
+
+<h3>Key design decisions</h3>
+<table>
+  <thead><tr><th style="width:27%">Decision</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>Raw <code>httpx</code>, not the <code>ollama</code> package</td>
+        <td>Control over retry policy, NDJSON stream handling, and error classification — "daemon down" vs. "model not pulled" must be distinguishable</td></tr>
+    <tr><td>Hand-written loop</td>
+        <td>Debuggability. With a local model you read the trace constantly; framework indirection makes that painful</td></tr>
+    <tr><td>Schemas derived from type hints</td>
+        <td>The schema cannot drift from the implementation</td></tr>
+    <tr><td>Declared, not inferred, parallelism</td>
+        <td><code>parallel_safe=False</code> is explicit. Inferring a dependency graph from arguments is guesswork</td></tr>
+    <tr><td>No Jinja, no <code>eval</code></td>
+        <td>Templates substitute; conditions walk a whitelisted AST. Model and tool output flows through both</td></tr>
+    <tr><td>SQLite over ChromaDB</td>
+        <td>Ships with Python, no native wheel, fast enough at single-machine scale. Swapping it means reimplementing two methods</td></tr>
+    <tr><td>One repair retry, not a loop</td>
+        <td>A model that fails twice with the error in front of it essentially never succeeds on the third try</td></tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>5. Understanding Hermes</h2>
+
+<h3>Who makes it</h3>
+<p><strong>Nous Research</strong> is an open-weights AI collective. Hermes is their
+long-running series of instruction-tuned fine-tunes — they generally do not pretrain
+base models, they post-train other people's (Llama, Mistral, Qwen) with their own
+curated instruction and function-calling datasets.</p>
+
+<h3>The lineage</h3>
+<table>
+  <thead><tr><th style="width:24%">Generation</th><th style="width:22%">Base</th><th>What it added</th></tr></thead>
+  <tbody>
+    <tr><td>Nous-Hermes</td><td>Llama / Llama&nbsp;2</td><td>The original instruction tune</td></tr>
+    <tr><td>OpenHermes</td><td>Mistral 7B</td><td>Fully open dataset; strong small-model performance</td></tr>
+    <tr><td>Nous Hermes 2</td><td>Mistral / Mixtral / SOLAR</td><td>ChatML format, broader capability</td></tr>
+    <tr><td><strong>Hermes 2 Pro</strong></td><td>Mistral 7B, Llama-3 8B</td><td><strong>The function-calling milestone.</strong> Introduced the <code>&lt;tools&gt;</code> / <code>&lt;tool_call&gt;</code> / <code>&lt;tool_response&gt;</code> convention and a dedicated JSON structured-output mode</td></tr>
+    <tr><td><strong>Hermes 3</strong> (Aug 2024)</td><td>Llama 3.1 — 8B, 70B, 405B</td><td>Agentic use, much stronger system-prompt adherence and steerability, long context, improved tool use and structured output. <strong>This project's default.</strong></td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <span class="tag">On newer generations</span>
+  <p>Nous has continued the series past Hermes 3, with later releases emphasising
+  toggleable/hybrid reasoning. I cannot verify current tag names or exact base models
+  from this offline environment — check <code>ollama.com/library</code> for what is
+  actually pullable today. This system is tag-agnostic: any Hermes variant works by
+  changing <code>ollama.model</code>, with no code changes.</p>
+</div>
+
+<h3>Why Hermes specifically, for an agent</h3>
+<ul>
+  <li><strong>Function calling is a first-class training objective</strong>, not an
+  afterthought. Hermes 2 Pro onward were explicitly trained on tool-call datasets. Many
+  comparable open models emit plausible-looking JSON that does not match the schema.</li>
+  <li><strong>Strong system-prompt adherence.</strong> Nous markets Hermes 3 as highly
+  steerable with a deliberately thin "assistant persona". For an agent that is exactly
+  what you want: the system prompt defines behaviour, and the model follows it rather
+  than reverting to a trained-in personality.</li>
+  <li><strong>Native structured output.</strong> Pairs well with Ollama's
+  <code>format</code> parameter for schema-constrained generation.</li>
+  <li><strong>Open weights, permissive-ish licensing</strong> (inherits the base
+  model's licence — Llama 3.1 community licence for Hermes 3), and it runs offline.</li>
+</ul>
+
+<h3>The wire format — what actually goes over the wire</h3>
+<p>Hermes uses <strong>ChatML</strong> (<code>&lt;|im_start|&gt;</code> /
+<code>&lt;|im_end|&gt;</code>). Tool schemas are injected into the system turn inside a
+<code>&lt;tools&gt;</code> block, the model replies with a
+<code>&lt;tool_call&gt;</code> block, and results come back in
+<code>&lt;tool_response&gt;</code>:</p>
+
+<pre><code>&lt;|im_start|&gt;system
+You are a function calling AI model. You are provided with function
+signatures within &lt;tools&gt;&lt;/tools&gt; XML tags...
+&lt;tools&gt;
+{"type": "function", "function": {"name": "calculator", ...}}
+&lt;/tools&gt;&lt;|im_end|&gt;
+&lt;|im_start|&gt;user
+What is 1234 * 5678?&lt;|im_end|&gt;
+&lt;|im_start|&gt;assistant
+&lt;tool_call&gt;
+{"arguments": {"expression": "1234*5678"}, "name": "calculator"}
+&lt;/tool_call&gt;&lt;|im_end|&gt;
+&lt;|im_start|&gt;tool
+&lt;tool_response&gt;
+{"result": "7006652"}
+&lt;/tool_response&gt;&lt;|im_end|&gt;</code></pre>
+
+<p><strong>You normally never see this.</strong> Ollama's Hermes 3 modelfile template
+builds those blocks from the <code>tools</code> array you pass to
+<code>/api/chat</code>, and parses <code>&lt;tool_call&gt;</code> back out into
+<code>message.tool_calls</code>. That is the "native" path this system uses first.</p>
+
+<div class="callout warn">
+  <span class="tag">Why the fallback parser exists</span>
+  <p>The native path works most of the time — not all of the time. An 8B model
+  regularly emits the raw tags as plain <em>content</em>, truncates the closing tag
+  mid-generation, writes a Python dict with single quotes, or leaves a trailing comma.
+  When native parsing yields nothing, <code>llm/parsing.py</code> scans the text and
+  performs bounded repairs. Note also that Hermes writes
+  <code>{"arguments": ..., "name": ...}</code> — arguments first — so key order must not
+  matter to your parser.</p>
+</div>
+
+<h3>Hardware guidance</h3>
+<p>Pick the largest quantization that leaves roughly 2&nbsp;GB of headroom. Ollama
+spills to CPU when a model does not fit in VRAM — it still works, just several times
+slower.</p>
+<table>
+  <thead><tr><th style="width:21%">VRAM / RAM</th><th style="width:28%">Tag</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>8 GB VRAM</td><td><code>hermes3:8b</code> (Q4_K_M)</td><td>~4.7 GB. Comfortable at <code>num_ctx: 8192</code>. The default.</td></tr>
+    <tr><td>12 GB VRAM</td><td><code>hermes3:8b-q8_0</code></td><td>~8.5 GB. Noticeably better tool-call accuracy than Q4.</td></tr>
+    <tr><td>16 GB VRAM</td><td><code>hermes3:8b-fp16</code></td><td>Prefer this over a heavily quantized 70B — Q2 70B is usually <em>worse</em> at tool calls.</td></tr>
+    <tr><td>24 GB VRAM</td><td><code>hermes3:70b-q4_K_M</code></td><td>~40 GB total; expect CPU spill and roughly 3–8 tok/s.</td></tr>
+    <tr><td>CPU only, 16 GB</td><td><code>hermes3:8b</code></td><td>Works. Raise <code>ollama.request_timeout_s</code> to 600.</td></tr>
+    <tr><td>CPU only, 32 GB</td><td><code>hermes3:8b-q8_0</code></td><td>Better quality, still slow. Keep <code>num_ctx</code> at 8192.</td></tr>
+  </tbody>
+</table>
+<p>Context length costs memory quadratically in KV cache. On 8&nbsp;GB,
+<code>num_ctx: 8192</code> is roughly the ceiling for the 8B at Q4. If the model seems
+to forget early instructions, check the <code>context_trim</code> records in the trace
+before raising it.</p>
+
+<div class="page-break"></div>
+
+<h2>6. Where small local models break — and the mitigations</h2>
+
+<p>This is the part that matters. Each risk below has specific, tested code behind it.</p>
+
+<h3>1 · Tool calls that are almost valid</h3>
+<p><em>Mitigation:</em> a backstop parser handling tagged calls, fenced JSON and bare
+JSON, with bounded repairs — smart quotes, trailing commas, bracket balancing for
+truncated output, and Python-literal syntax.</p>
+<pre><code>parse_tool_calls('&lt;tool_call&gt;{"name": "calculator", "arguments": {"expression": "2+2",}')
+<span class="c"># → ParsedCall(name='calculator', arguments={'expression': '2+2'}, repaired=True)</span></code></pre>
+<p>Every fallback parse is recorded as a <code>parse_fallback</code> step with a
+<code>repaired</code> flag, so you can <em>measure</em> how often your model needs it.
+The bare-JSON path is gated on known tool names — otherwise a structured JSON
+<em>answer</em> containing a <code>name</code> field gets misread as a tool call.</p>
+
+<h3>2 · Invalid arguments</h3>
+<p><em>Mitigation:</em> validation failures never raise out of the loop. The error
+<strong>plus the full schema</strong> goes back to the model as an ordinary tool result,
+and Hermes usually self-corrects on the next turn. Unknown tool names get the same
+treatment, listing what <em>is</em> available.</p>
+<pre><code>ERROR (read_file): Invalid arguments for read_file: max_bytes: Input should be
+a valid integer... Expected schema: {...}. Call the tool again with corrected
+arguments.</code></pre>
+
+<h3>3 · Infinite loops</h3>
+<p><em>Mitigation:</em> three independent guards — a signature counter on
+<code>(tool, arguments)</code>, a per-turn call cap, and a global iteration cap — then a
+forced tool-free answer turn.</p>
+
+<h3>4 · JSON that does not match the schema</h3>
+<p><em>Mitigation:</em> three layers. Ollama's <code>format</code> constrains
+generation; the result is validated; one repair retry carries the precise validation
+error and the schema. Steps may set <code>output.required: false</code> to degrade to
+prose instead of failing.</p>
+
+<h3>5 · Context overflow</h3>
+<p>Exceeding <code>num_ctx</code> makes Ollama silently drop the <em>start</em> of the
+prompt — usually the system prompt and the task.</p>
+<p><em>Mitigation:</em> usage is estimated at chars/4, then calibrated against the
+<code>prompt_eval_count</code> Ollama reports after every call. Past
+<code>context_trim_ratio</code>, evicted turns are summarized. Eviction operates on
+<strong>blocks</strong>: an assistant message with <code>tool_calls</code> and its
+<code>tool</code> replies move together, because splitting them produces a malformed
+prompt. The first user message is always preserved.</p>
+
+<h3>6 · Fabricated tool results</h3>
+<p>Models sometimes report a file as written without calling <code>write_file</code>.</p>
+<p><em>Mitigation:</em> partly the prompt, but mainly the trace. Every
+<code>tool_call</code> record holds the real arguments, result and latency.
+<strong>If it is not in the JSONL, it did not happen.</strong></p>
+
+<h2>7. Safety model</h2>
+<ul>
+  <li><strong>Filesystem.</strong> Every file tool routes through
+  <code>resolve_in_workspace()</code>, which resolves to an absolute real path and
+  requires it to sit under <code>WORKSPACE_DIR</code>. Resolving <em>before</em>
+  comparing defeats <code>../</code> traversal, absolute paths, and symlinks pointing
+  outside.</li>
+  <li><strong>Destructive tools.</strong> Gated behind an explicit flag; workflows
+  declaring the need are refused up front.</li>
+  <li><strong>Prompt injection.</strong> Tool results are wrapped with an explicit
+  instruction that they are untrusted data. The real boundary is the workspace and the
+  destructive flag — not the prompt.</li>
+</ul>
+
+<div class="callout warn">
+  <span class="tag">run_python is not a security boundary</span>
+  <p>It runs under <code>python -I</code> with a scrubbed environment, a wall-clock
+  timeout, <code>socket</code> neutered in-process (which blocks every stdlib HTTP
+  client), and POSIX rlimits on memory, CPU, file size and process count. That is
+  defence in depth against a <em>confused</em> model, not protection against hostile
+  code. <strong>Windows has no rlimit equivalent</strong>, so only the network block and
+  the timeout apply there, and <code>ctypes</code> can escape regardless. Run genuinely
+  untrusted code in a container or VM.</p>
+</div>
+
+<h2>8. Extending it</h2>
+
+<h3>Adding a tool</h3>
+<p>Write a typed function with a Google-style docstring and decorate it. The JSON schema
+is derived from the signature, so it cannot drift from the code.</p>
+<pre><code><span class="k">from</span> hermes_agent.tools.registry <span class="k">import</span> tool
+<span class="k">from</span> hermes_agent.tools.sandbox <span class="k">import</span> resolve_in_workspace
+
+<span class="k">@tool</span>(tags=["fs"], destructive=False, parallel_safe=True)
+<span class="k">def</span> count_lines(path: str, skip_blank: bool = False) -&gt; str:
+    """Count the lines in a workspace text file.
+
+    Args:
+        path: Path relative to the workspace root.
+        skip_blank: Ignore blank lines in the count.
+    """
+    text = resolve_in_workspace(path, must_exist=True).read_text(encoding="utf-8")
+    lines = text.splitlines()
+    <span class="k">if</span> skip_blank:
+        lines = [ln <span class="k">for</span> ln <span class="k">in</span> lines <span class="k">if</span> ln.strip()]
+    <span class="k">return</span> f"{len(lines)} lines"</code></pre>
+
+<p>The contract: <strong>parameter types</strong> become the schema (prefer plain
+<code>str</code>, <code>int</code>, <code>float</code>, <code>bool</code>,
+<code>list[str]</code> — avoid <code>Any</code>). The <strong>docstring summary</strong>
+becomes the tool description and <code>Args:</code> entries become parameter
+descriptions; both go into the prompt, so write them for the model.
+<strong>Raise on failure</strong> — the registry converts it to a structured error.
+Async functions work; sync ones run in a thread. Verify with
+<code>hermes tools list --schemas</code>.</p>
+
+<h3>Writing a workflow</h3>
+<pre><code>name: my_workflow
+allow_destructive: false
+max_steps: 12
+inputs:
+  topic: { required: true }
+steps:
+  - id: gather
+    system: You are precise and cite filenames.
+    prompt: Find everything about {{ inputs.topic }} in the workspace.
+    tools: [list_dir, read_file]     <span class="c"># [] = none; omit = all</span>
+    max_iterations: 6
+    output:
+      schema:
+        type: object
+        properties:
+          found: { type: boolean }
+        required: [found]
+    next:
+      - when: "steps.gather.output.found == false"
+        goto: end
+      - goto: report</code></pre>
+
+<div class="callout">
+  <span class="tag">The one thing that trips people up</span>
+  <p><code>prompt:</code> and <code>system:</code> are <strong>templates</strong> —
+  <code>{{ dotted.path }}</code> substitution. <code>when:</code> is an
+  <strong>expression</strong> — <em>no braces</em>. Write
+  <code>inputs.max_fixes</code>, not <code>{{ inputs.max_fixes }}</code>.</p>
+</div>
+
+<table>
+  <thead><tr><th style="width:34%">Context path</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>inputs.&lt;name&gt;</code></td><td>Declared workflow inputs</td></tr>
+    <tr><td><code>steps.&lt;id&gt;.answer</code></td><td>That step's prose answer</td></tr>
+    <tr><td><code>steps.&lt;id&gt;.output.&lt;field&gt;</code></td><td>Validated structured output</td></tr>
+    <tr><td><code>steps.&lt;id&gt;.stop_reason</code></td><td>How that step's agent loop ended</td></tr>
+    <tr><td><code>state.visits.&lt;id&gt;</code></td><td>Times a step ran — <strong>use this to bound loops</strong></td></tr>
+    <tr><td><code>state.step_count</code></td><td>Total steps executed</td></tr>
+  </tbody>
+</table>
+
+<p>First matching <code>next</code> transition wins; no match falls through in order;
+<code>goto: end</code> terminates. Missing paths resolve to <code>None</code> rather
+than raising, so a branch referencing a step that has not run evaluates falsy.</p>
+
+<h2>9. Honest limitations</h2>
+<ul>
+  <li><strong>Tool-call accuracy is the bottleneck</strong>, not reasoning. Check
+  <code>grep parse_fallback runs/*.jsonl</code> before blaming the loop.</li>
+  <li><strong>Temperature above ~0.4 degrades tool calling sharply.</strong> Default is
+  0.2. Raise it for prose, not for tool-using steps.</li>
+  <li><strong>More than ~8 tools in one prompt</strong> measurably hurts selection
+  accuracy. Use per-step <code>tools:</code> subsets.</li>
+  <li><strong>Multi-step plans drift</strong> around 5–6 tool calls. Prefer several
+  narrow workflow steps over one long agent run — this is the main reason the workflow
+  layer exists.</li>
+  <li><strong>Deeply nested output schemas still fail</strong> even with
+  <code>format</code>. Keep them shallow and flat.</li>
+  <li><strong>Self-assessment is unreliable.</strong> A critic step will approve broken
+  work; <code>code_fix_loop</code> gates on real test output instead.</li>
+  <li><strong>70B is better at tool use</strong> but often too slow for interactive
+  loops once it spills to CPU. An 8B at <code>q8_0</code> is usually the better trade on
+  12–16 GB.</li>
+</ul>
+
+<div class="footer-note">
+  <p><strong>Verification status.</strong> 271 unit tests pass and lint is clean. The
+  parser, agent loop, sandbox, workflow engine and HTTP API were exercised directly;
+  both bundled workflows were run end-to-end against a scripted model. The 12
+  <code>@pytest.mark.ollama</code> integration tests have <em>not</em> been run against
+  a live model — Ollama was not running in the build environment. They skip themselves
+  automatically; run <code>ollama serve</code>, then <code>pytest -m ollama -v</code>
+  to close that gap.</p>
+</div>
+
+</body>
+</html>

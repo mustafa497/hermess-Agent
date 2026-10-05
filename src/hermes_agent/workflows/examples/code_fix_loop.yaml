@@ -1,0 +1,169 @@
+name: code_fix_loop
+description: Plan, write, test and fix a small Python script until its tests pass.
+allow_destructive: true   # writes files and runs code
+max_steps: 14
+
+system: >-
+  You are a pragmatic Python developer working inside a sandboxed workspace.
+  Code runs with no network access and a short timeout. Keep solutions to the
+  standard library.
+
+inputs:
+  task:
+    description: What the script should do
+    required: true
+  script_path:
+    description: Where to write the implementation
+    default: "solution.py"
+  test_path:
+    description: Where to write the tests
+    default: "test_solution.py"
+  max_fixes:
+    description: How many repair attempts are allowed before giving up
+    default: 3
+
+steps:
+  - id: plan
+    description: Decide the interface and the test cases
+    system: >-
+      You are a planner. Decide the smallest correct design. Do not write the
+      implementation yet and do not call tools.
+    prompt: >-
+      Task: {{ inputs.task }}
+
+      Decide:
+        1. The functions to define, with exact signatures.
+        2. Five test cases, including edge cases and at least one error case.
+
+      Keep it to the Python standard library.
+    tools: []
+    max_iterations: 2
+    output:
+      schema:
+        type: object
+        properties:
+          functions:
+            type: array
+            minItems: 1
+            items:
+              type: object
+              properties:
+                name: { type: string }
+                signature: { type: string }
+                behaviour: { type: string }
+              required: [name, signature]
+          test_cases:
+            type: array
+            minItems: 1
+            items: { type: string }
+        required: [functions, test_cases]
+
+  - id: implement
+    description: Write the implementation
+    system: >-
+      You write clean, typed Python. Write the file with write_file, then stop.
+    prompt: >-
+      Task: {{ inputs.task }}
+
+      Design:
+      {{ steps.plan.output.functions }}
+
+      Write the implementation to "{{ inputs.script_path }}" using write_file.
+      Include type hints and short docstrings. Standard library only. Do not
+      write tests in this file.
+    tools: [write_file, read_file]
+    max_iterations: 4
+
+  - id: write_tests
+    description: Write plain-assert tests
+    system: >-
+      You write tests that run standalone with no test framework installed.
+    prompt: >-
+      Write tests to "{{ inputs.test_path }}" using write_file.
+
+      Requirements:
+        - import from "{{ inputs.script_path }}" (drop the .py, it is importable
+          because it sits in the working directory)
+        - use plain `assert` statements, NOT pytest
+        - cover these cases: {{ steps.plan.output.test_cases }}
+        - end with: print("ALL TESTS PASSED")
+
+      The file must run top to bottom under `python {{ inputs.test_path }}`.
+    tools: [write_file, read_file]
+    max_iterations: 4
+
+  - id: run_tests
+    description: Execute the tests
+    system: >-
+      You run tests and report results verbatim. Never claim a test passed
+      unless the output says so.
+    prompt: >-
+      Run the tests with run_python, executing exactly this code:
+
+      exec(open("{{ inputs.test_path }}").read())
+
+      Then report the outcome. Passing means the output contains
+      "ALL TESTS PASSED" and the exit code is 0.
+    tools: [run_python, read_file]
+    max_iterations: 4
+    output:
+      schema:
+        type: object
+        properties:
+          passed:
+            type: boolean
+            description: True only if the run printed ALL TESTS PASSED with exit code 0
+          failure_summary:
+            type: string
+            description: The error and traceback, empty when passing
+        required: [passed]
+    next:
+      - when: "steps.run_tests.output.passed == true"
+        goto: report
+      # Bounded repair loop. Conditions are expressions, not templates: refer
+      # to inputs by dotted path directly, with no {{ }} braces.
+      - when: "state.visits.run_tests > inputs.max_fixes"
+        goto: report
+      - goto: fix
+
+  - id: fix
+    description: Diagnose and repair
+    system: >-
+      You debug Python. Read the failing file before editing it. Change the
+      implementation, not the tests, unless a test is provably wrong -- and say
+      so explicitly if you change one.
+    prompt: >-
+      The tests failed.
+
+      Failure:
+      {{ steps.run_tests.output.failure_summary }}
+
+      Full output:
+      {{ steps.run_tests.answer }}
+
+      Read "{{ inputs.script_path }}" and "{{ inputs.test_path }}", work out the
+      cause, and write the corrected file. Fix the root cause rather than
+      special-casing the failing input.
+    tools: [read_file, write_file, run_python]
+    max_iterations: 8
+    next:
+      - goto: run_tests
+
+  - id: report
+    description: Summarise honestly
+    system: >-
+      You report outcomes factually. If the tests never passed, say so plainly
+      in the first sentence.
+    prompt: >-
+      Summarise the work for the user.
+
+      Task: {{ inputs.task }}
+      Files: {{ inputs.script_path }}, {{ inputs.test_path }}
+      Tests passed: {{ steps.run_tests.output.passed }}
+      Repair attempts used: {{ state.visits.fix }}
+      Last test output: {{ steps.run_tests.answer }}
+
+      State clearly whether the tests pass, what the script does, and anything
+      left unresolved.
+    tools: []
+    max_iterations: 2

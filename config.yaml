@@ -1,0 +1,43 @@
+# Base configuration. Any field can be overridden by a HERMES_* environment
+# variable (see .env.example) without touching this file or the code.
+
+ollama:
+  host: http://localhost:11434
+  model: hermes3:8b          # any Hermes tag works: hermes3:70b, hermes3:405b-q4_K_M, ...
+  embed_model: nomic-embed-text
+  temperature: 0.2           # low: tool-call accuracy degrades fast above ~0.4 on 8B
+  top_p: 0.9
+  num_ctx: 8192              # raise for larger variants / more RAM
+  num_predict: -1
+  seed: null                 # set an int for reproducible runs
+  keep_alive: 5m
+  connect_timeout_s: 5
+  request_timeout_s: 180
+  max_retries: 3
+  backoff_base_s: 0.5
+  backoff_max_s: 8
+
+agent:
+  max_iterations: 10
+  max_tool_calls_per_turn: 5
+  loop_detection_threshold: 3   # same tool + same args N times -> abort
+  context_trim_ratio: 0.75      # summarize history past this fraction of num_ctx
+  keep_recent_turns: 6
+  enable_tag_fallback: true     # parse <tool_call>{...}</tool_call> when native parsing yields nothing
+
+safety:
+  workspace_dir: ./workspace
+  allow_destructive: false
+  python_timeout_s: 20
+  python_max_output_chars: 20000
+  max_read_bytes: 200000
+
+memory:
+  long_term_enabled: false
+  db_path: ./runs/memory.sqlite3
+  top_k: 5
+  collection: default
+
+observability:
+  runs_dir: ./runs
+  log_level: INFO
